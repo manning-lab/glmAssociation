@@ -15,7 +15,7 @@ task assocTest {
 	Int disk
 
 	command {
-		R --vanilla --args ${gds_file} ${phenotype_file} ${outcome_name} ${covariates_string} ${id_col} ${label} ${test} ${default="NA" sample_file} ${default="5" mac} ${default="NA" variant_range} < /glmAssociation/association_linear.R
+		R --vanilla --args ${gds_file} ${phenotype_file} ${outcome_name} ${covariates_string} ${id_col} ${label} ${test} ${default="NA" sample_file} ${default="5" mac} ${default="NA" variant_range} < /glmAssociation/association_glm.R
 	}
 
 	meta {

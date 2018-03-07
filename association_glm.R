@@ -1,30 +1,30 @@
-### association_linear.R
+### association_glm.R
 # Description: This function performs an association test to generate p-values for each variant included.
 # Inputs:
 # gds.file : a genotype file containing data for all samples are variants to be tested (.gds)
-# phenotype.file : 
-# outcome.name
-# covariate.string 
-# id.col
+# phenotype.file : tsv or csv of phenotypes for samples contained in the gds.file (.csv, .tsv)
+# outcome.name : outcome to be tested (string)
+# covariate.string : comma separated list of covariates to include in the model (string)
+# id.col : column name in phenotype file with sample ids (string)
 # label : prefix for output filename (string)
-# test : statistical test (Score or Wald, default = Score)
-# sample.file
+# test : statistical test (linear, logistic, firth)
+# sample.file : text file with one sample id per line to include in analysis (optional, .txt)
 # mac : minimum minor allele count for variants to be included in analysis (int, default = 5)
 # variant.range : comma separated list of variant ranges in format <chr#>:pos_start-pos_end
 # Outputs:
 # assoc : an RData file of associations results (.RData)
 
 ####### Testing inputs ########
-gds.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/gds_files/freeze.5b.chr10.pass_and_fail.gtonly.minDP10.chunk1.gds"
-phenotype.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/Pooled_MIXED_TM_19JAN18_T2D_freeze5b_harmonized_ancestry.csv"
-outcome.name <- "t2d_ctrl"
-covariate.string <- "last_exam_age,study,sex"
-id.col <- "topmedid"
-label <- "linear_testing"
-test <- "linear"
-sample.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/first_500_samples.txt"
-mac <- 5
-variant.range <- "NA"
+# gds.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/gds_files/freeze.5b.chr10.pass_and_fail.gtonly.minDP10.chunk1.gds"
+# phenotype.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/Pooled_MIXED_TM_19JAN18_T2D_freeze5b_harmonized_ancestry.csv"
+# outcome.name <- "t2d_ctrl"
+# covariate.string <- "last_exam_age,study,sex"
+# id.col <- "topmedid"
+# label <- "linear_testing"
+# test <- "linear"
+# sample.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/first_500_samples.txt"
+# mac <- 5
+# variant.range <- "NA"
 ##############################
 
 # Load packages
