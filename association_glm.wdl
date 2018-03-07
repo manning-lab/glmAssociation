@@ -24,7 +24,7 @@ task assocTest {
 	}
 	
 	runtime {
-		docker: "manning-lab/glmAssociation:latest"
+		docker: "manninglab/glmassociation:latest"
 		disks: "local-disk ${disk} SSD"
 		memory: "${memory}G"
 	}
@@ -48,7 +48,7 @@ task summary {
 	}
 	
 	runtime {
-		docker: "manning-lab/glmAssociation:latest"
+		docker: "manninglab/glmassociation:latest"
   	    disks: "local-disk ${disk} SSD"
         memory: "${memory}G"
 	}
