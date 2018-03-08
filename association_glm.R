@@ -15,14 +15,14 @@
 # assoc : an RData file of associations results (.RData)
 
 ####### Testing inputs ########
-# gds.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/ALL.autosomes.pindel.20130502.complexindex.low_coverage.genotypes.seqarray.gds"
-# phenotype.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/integrated_call_samples_v3.20130502.ALL.panel.simulated.ped"
-# outcome.name <- "t2d"
-# covariate.string <- "population,sex,last_exam_age,bmi"
-# id.col <- "sample_id"
-# label <- "1000G_demo"
+# gds.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/freeze.5b.chr10.pass_and_fail.gtonly.minDP10.chunk1.gds"
+# phenotype.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/Pooled_MIXED_TM_9DEC2017_T2D_freeze5b.csv"
+# outcome.name <- "t2d_ctrl"
+# covariate.string <- "last_exam_age,sex,study"
+# id.col <- "topmedid"
+# label <- "HS_test"
 # test <- "linear"
-# sample.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/integrated_call_samples_v3.20130502.ALL.panel.simulated.sample_ids.txt"
+# sample.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/Pooled_MIXED_TM_9DEC2017_T2D_freeze5b_HS.txt"
 # mac <- 5
 # variant.range <- "NA"
 ##############################
@@ -90,29 +90,52 @@ all_vals <- c(id.col,outcome.name,covariates)
 # subset by only these fields
 phenotype.slim <- na.omit(as.data.frame(phenotype.data[,all_vals,drop=F]))
 
-# subset by sample ids if they are given
+# opend gds file
+gds.data <- seqOpen(gds.file)
+
+# get the sample ids
+sample.id <- seqGetData(gds.data, "sample.id")
+
+# make sure we dont have any extra sample ids
+phenotype.slim <- phenotype.slim[phenotype.slim[,id.col] %in% sample.id,]
+
+# need to assign NA rows for sample ids that are in gds but not pheno
+# get the ids
+no.pheno <- sample.id[!(sample.id %in% phenotype.slim[,id.col])]
+
+# make an na df to merge
+no.pheno.rows <- data.frame(sample.id=no.pheno, stringsAsFactors=F)
+
+# ensure that we merge on the right column
+names(no.pheno.rows) <- id.col
+
+# add the rows to pheno
+phenotype.slim[(nrow(phenotype.slim) + 1):(nrow(phenotype.slim) + nrow(no.pheno.rows)), names(no.pheno.rows)] <- no.pheno.rows
+
+# order the rows to match gds
+phenotype.slim <- phenotype.slim[match(sample.id,phenotype.slim[,id.col]),,drop=F]
+
+# change col name, needed for seqvardata
+all_vals[1] <- "sample.id"
+names(phenotype.slim) <- all_vals
+
+# metadata for df
+meta <- data.frame(labelDescription=all_vals, row.names=names(phenotype.slim))
+
+# make final sample df
+pheno.anno <- AnnotatedDataFrame(phenotype.slim, meta)
+reg.in <- SeqVarData(gds.data, pheno.anno)
+
+# subset to some ids if given
 if (!(sample.file == "NA")){
   sample.ids <- unique(readLines(sample.file))
-  phenotype.slim <- phenotype.slim[phenotype.slim[,id.col] %in% sample.ids,na.omit(all_vals,drop=F)]
+  seqSetFilter(gds.data, sample.id=sample.ids, action="intersect", verbose=TRUE)
 }
 
-# get the right naming convention for the phenotype file
-names(phenotype.slim)[1]<- "sample.id"
-
-# put in annotated data frame format for regression function
-phenotype.anno <- AnnotatedDataFrame(data = phenotype.slim)
-
-# Make sure that the data frame has the right fields
-gds.data <- seqOpen(gds.file)
-sample.id <- seqGetData(gds.data, "sample.id")
-sample.id <- data.frame(sample.id, stringsAsFactors = F)
-pData(phenotype.anno) <- left_join(sample.id, pData(phenotype.anno), by="sample.id")
-
 # Filter by desired MAC
-seqSetFilter(gds.data,sample.id=phenotype.slim$sample.id, action="intersect", verbose=TRUE)
 gds.freq <- seqAlleleFreq(gds.data, .progress=TRUE)
 gds.maf <- pmin(gds.freq, 1-gds.freq)
-gds.mac.filt <- 2 * gds.maf * (1-gds.maf) * length(phenotype.slim$sample.id) >= mac
+gds.mac.filt <- 2 * gds.maf * (1-gds.maf) * length(seqGetData(gds.data,"sample.id")) >= mac
 
 # Filter to snps with mac greater than threshold
 seqSetFilter(gds.data, variant.sel=gds.mac.filt, action="intersect", verbose=TRUE)
@@ -123,7 +146,8 @@ chr <- seqGetData(gds.data,"chromosome")
 pos <- seqGetData(gds.data,"position")
 ref <- as.character(ref(gds.data))
 alt <- as.character(unlist(alt(gds.data)))
-snps.pos <- data.frame(id,chr,pos,ref,alt)
+maf <- gds.maf[gds.mac.filt]
+snps.pos <- data.frame(id,chr,pos,ref,alt,maf)
 
 # If variant range is input, subset by var range
 if (!(variant.range == "NA")){
@@ -141,14 +165,17 @@ if (!(variant.range == "NA")){
   snps.pos <- snps.pos[snps.pos$id %in% var.tokeep.id,]
 }
 
-seqClose(gds.data)
-reg.in <- SeqVarData(gds.file, sampleData = phenotype.anno)
-
+# run regression
 reg.out <- regression(reg.in,
                       outcome = outcome.name, 
                       covar=covariates, 
                       model.type=test)
+# close gds
 seqClose(gds.data)
+
+# merge results with snp data
 assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
+
+# save results
 save(assoc, file=paste(label, ".assoc.RData", sep=""))
 
