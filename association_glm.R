@@ -141,14 +141,14 @@ if (!(variant.range == "NA")){
   snps.pos <- snps.pos[snps.pos$id %in% var.tokeep.id,]
 }
 
-# seqClose(gds.data)
+seqClose(gds.data)
 reg.in <- SeqVarData(gds.file, sampleData = phenotype.anno)
 
 reg.out <- regression(reg.in,
                       outcome = outcome.name, 
                       covar=covariates, 
                       model.type=test)
-
+seqClose(gds.data)
 assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
 save(assoc, file=paste(label, ".assoc.RData", sep=""))
 
