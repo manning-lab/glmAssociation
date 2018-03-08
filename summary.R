@@ -22,9 +22,9 @@ label <- input_args[3]
 assoc.files <- unlist(strsplit(input_args[4],","))
 
 if (test == "firth"){
-  pval <- "PPL.pval"
+  pval <- "PPL.Pval"
 } else {
-  pval <- "Wald.pval"
+  pval <- "Wald.Pval"
 }
 
 # Stop if no assoc files
