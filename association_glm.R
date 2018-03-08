@@ -15,14 +15,14 @@
 # assoc : an RData file of associations results (.RData)
 
 ####### Testing inputs ########
-# gds.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/gds_files/freeze.5b.chr10.pass_and_fail.gtonly.minDP10.chunk1.gds"
-# phenotype.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/Pooled_MIXED_TM_19JAN18_T2D_freeze5b_harmonized_ancestry.csv"
-# outcome.name <- "t2d_ctrl"
-# covariate.string <- "last_exam_age,study,sex"
-# id.col <- "topmedid"
-# label <- "linear_testing"
+# gds.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/ALL.autosomes.pindel.20130502.complexindex.low_coverage.genotypes.seqarray.gds"
+# phenotype.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/integrated_call_samples_v3.20130502.ALL.panel.simulated.ped"
+# outcome.name <- "t2d"
+# covariate.string <- "population,sex,last_exam_age,bmi"
+# id.col <- "sample_id"
+# label <- "1000G_demo"
 # test <- "linear"
-# sample.file <- "/Users/tmajaria/Documents/projects/topmed/data/test_inputs/phenotypes/first_500_samples.txt"
+# sample.file <- "/Users/tmajaria/Documents/projects/public_workflows/singleVariantAssociation/test_inputs/integrated_call_samples_v3.20130502.ALL.panel.simulated.sample_ids.txt"
 # mac <- 5
 # variant.range <- "NA"
 ##############################
@@ -144,12 +144,11 @@ if (!(variant.range == "NA")){
 seqClose(gds.data)
 reg.in <- SeqVarData(gds.file, sampleData = phenotype.anno)
 
-# why is this taking so long?
 reg.out <- regression(reg.in,
                       outcome = outcome.name, 
                       covar=covariates, 
                       model.type=test)
 
-assoc <- cbind(snps.pos, reg.out)
+assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
 save(assoc, file=paste(label, ".assoc.RData", sep=""))
 
