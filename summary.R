@@ -76,19 +76,19 @@ if (length(assoc.files) == 0){
   qq(assoc.compilation$P,main="All variants")
   
   # Common variants
-  qq(assoc.compilation$P[assoc.compilation$freq>0.05],main="Variants with MAF>0.05")
+  qq(assoc.compilation$P[assoc.compilation$maf>0.05],main="Variants with MAF>0.05")
   
   # Rare/Low frequency variants
-  qq(assoc.compilation$P[assoc.compilation$freq<=0.05],main="Variants with MAF<=0.05")
+  qq(assoc.compilation$P[assoc.compilation$maf<=0.05],main="Variants with MAF<=0.05")
   
   # Manhattan plots by maf
   # All variants
   manhattan(assoc.compilation,chr="chr",bp="pos",p="P", main="All variants")
   
   # Common variants
-  manhattan(assoc.compilation[assoc.compilation$freq>0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF>0.05")
+  manhattan(assoc.compilation[assoc.compilation$maf>0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF>0.05")
   
   # Rare/Low frequency variants
-  manhattan(assoc.compilation[assoc.compilation$freq<=0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF<=0.05")
+  manhattan(assoc.compilation[assoc.compilation$maf<=0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF<=0.05")
   dev.off()
 }
