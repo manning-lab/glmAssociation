@@ -103,14 +103,17 @@ phenotype.slim <- phenotype.slim[phenotype.slim[,id.col] %in% sample.id,]
 # get the ids
 no.pheno <- sample.id[!(sample.id %in% phenotype.slim[,id.col])]
 
-# make an na df to merge
-no.pheno.rows <- data.frame(sample.id=no.pheno, stringsAsFactors=F)
+if (length(no.pheno) > 0){
+  # make an na df to merge
+  no.pheno.rows <- data.frame(sample.id=no.pheno, stringsAsFactors=F)
 
-# ensure that we merge on the right column
-names(no.pheno.rows) <- id.col
+  # ensure that we merge on the right column
+  names(no.pheno.rows) <- id.col
 
-# add the rows to pheno
-phenotype.slim[(nrow(phenotype.slim) + 1):(nrow(phenotype.slim) + nrow(no.pheno.rows)), names(no.pheno.rows)] <- no.pheno.rows
+  # add the rows to pheno
+  phenotype.slim[(nrow(phenotype.slim) + 1):(nrow(phenotype.slim) + nrow(no.pheno.rows)), names(no.pheno.rows)] <- no.pheno.rows
+
+}
 
 # order the rows to match gds
 phenotype.slim <- phenotype.slim[match(sample.id,phenotype.slim[,id.col]),,drop=F]
