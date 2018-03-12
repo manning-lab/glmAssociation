@@ -14,19 +14,6 @@
 # Outputs:
 # assoc : an RData file of associations results (.RData)
 
-####### Testing inputs ########
-# gds.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/freeze.5b.chr10.pass_and_fail.gtonly.minDP10.chunk1.gds"
-# phenotype.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/Pooled_MIXED_TM_9DEC2017_T2D_freeze5b.csv"
-# outcome.name <- "t2d_ctrl"
-# covariate.string <- "last_exam_age,sex,study"
-# id.col <- "topmedid"
-# label <- "HS_test"
-# test <- "linear"
-# sample.file <- "/Users/tmajaria/Documents/projects/public_workflows/glm_test/Pooled_MIXED_TM_9DEC2017_T2D_freeze5b_HS.txt"
-# mac <- 5
-# variant.range <- "NA"
-##############################
-
 # Load packages
 library(data.table)
 library(Biobase)
@@ -103,14 +90,17 @@ phenotype.slim <- phenotype.slim[phenotype.slim[,id.col] %in% sample.id,]
 # get the ids
 no.pheno <- sample.id[!(sample.id %in% phenotype.slim[,id.col])]
 
-# make an na df to merge
-no.pheno.rows <- data.frame(sample.id=no.pheno, stringsAsFactors=F)
+if (length(no.pheno) > 0){
+  # make an na df to merge
+  no.pheno.rows <- data.frame(sample.id=no.pheno, stringsAsFactors=F)
 
-# ensure that we merge on the right column
-names(no.pheno.rows) <- id.col
+  # ensure that we merge on the right column
+  names(no.pheno.rows) <- id.col
 
-# add the rows to pheno
-phenotype.slim[(nrow(phenotype.slim) + 1):(nrow(phenotype.slim) + nrow(no.pheno.rows)), names(no.pheno.rows)] <- no.pheno.rows
+  # add the rows to pheno
+  phenotype.slim[(nrow(phenotype.slim) + 1):(nrow(phenotype.slim) + nrow(no.pheno.rows)), names(no.pheno.rows)] <- no.pheno.rows
+
+}
 
 # order the rows to match gds
 phenotype.slim <- phenotype.slim[match(sample.id,phenotype.slim[,id.col]),,drop=F]

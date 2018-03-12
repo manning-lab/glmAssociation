@@ -15,6 +15,21 @@ task assocTest {
 	Int disk
 
 	command {
+		echo "Input files" > assocTest.log
+		echo "gds_file: ${gds_file}" >> assocTest.log
+		echo "phenotype_file: ${phenotype_file}" >> assocTest.log
+		echo "outcome_name: ${outcome_name}" >> assocTest.log
+		echo "covariates_string: ${covariates_string}" >> assocTest.log
+		echo "id_col: ${id_col}" >> assocTest.log
+		echo "label: ${label}" >> assocTest.log
+		echo "test: ${test}" >> assocTest.log
+		echo "sample_file: ${sample_file}" >> assocTest.log
+		echo "mac: ${mac}" >> assocTest.log
+		echo "variant_range: ${variant_range}" >> assocTest.log
+		echo "memory: ${memory}" >> assocTest.log
+		echo "disk: ${disk}" >> assocTest.log
+		echo "" >> assocTest.log
+		dstat -c -d -m --nocolor 10 1>>assocTest.log &
 		R --vanilla --args ${gds_file} ${phenotype_file} ${outcome_name} ${covariates_string} ${id_col} ${label} ${test} ${default="NA" sample_file} ${default="5" mac} ${default="NA" variant_range} < /glmAssociation/association_glm.R
 	}
 
@@ -31,6 +46,7 @@ task assocTest {
 
 	output {
 		File assoc = "${label}.assoc.RData"
+		File log = "assocTest.log"
 	}
 }
 
@@ -44,6 +60,15 @@ task summary {
 	Int disk
 
 	command {
+		echo "Input files" > summary.log
+		echo "test: ${test}" >> summary.log
+		echo "pval_threshold: ${pval_threshold}" >> summary.log
+		echo "label: ${label}" >> summary.log
+		echo "assoc: ${sep = ',' assoc}" >> summary.log
+		echo "memory: ${memory}" >> summary.log
+		echo "disk: ${disk}" >> summary.log
+		echo "" >> summary.log
+		dstat -c -d -m --nocolor 10 1>>summary.log &
 		R --vanilla --args ${test} ${default="0.0001" pval_threshold} ${label} ${sep = ',' assoc} < /glmAssociation/summary.R
 	}
 	
@@ -57,6 +82,7 @@ task summary {
 		File allassoccsv = "${label}.assoc.csv"
 		File topassoccsv = "${label}.topassoc.csv"
 		File plots = "${label}_association_plots.png"
+		File log = "summary.log"
 	}
 }
 
