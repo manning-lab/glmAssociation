@@ -136,6 +136,7 @@ chr <- seqGetData(gds.data,"chromosome")
 pos <- seqGetData(gds.data,"position")
 ref <- as.character(ref(gds.data))
 alt <- as.character(unlist(alt(gds.data)))
+gds.mac.filt[is.na(gds.mac.filt)] <- FALSE
 maf <- gds.maf[gds.mac.filt]
 snps.pos <- data.frame(id,chr,pos,ref,alt,maf)
 
