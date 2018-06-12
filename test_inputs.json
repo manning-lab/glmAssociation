@@ -1,0 +1,14 @@
+{
+  "w_assocTest.this_label": "demo_1000_genomes",
+  "w_assocTest.this_test": "linear",
+  "w_assocTest.this_id_col": "sample_id",
+  "w_assocTest.this_sample_file": "test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.sample.ids.txt",
+  "w_assocTest.this_covariates_string": "population,sex,last_exam_age,bmi",
+  "w_assocTest.this_outcome_name": "t2d",
+  "w_assocTest.this_disk": 50,
+  "w_assocTest.this_pval_threshold": 0.9,
+  "w_assocTest.this_memory": 5,
+  "w_assocTest.this_phenotype_file": "test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.phenotypes.csv",
+  "w_assocTest.this_mac": 10,
+  "w_assocTest.these_gds_file": ["test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.gds"]
+}
