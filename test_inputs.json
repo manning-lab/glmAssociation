@@ -10,5 +10,5 @@
   "w_assocTest.this_memory": 5,
   "w_assocTest.this_phenotype_file": "test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.phenotypes.csv",
   "w_assocTest.this_mac": 10,
-  "w_assocTest.these_gds_file": ["test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.gds"]
+  "w_assocTest.these_gds_file": ["test_inputs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.MAC10.01p.gds"]
 }
