@@ -206,15 +206,23 @@ if (sum(gds.mac.filt) == 0){
     
     if (test == "linear"){
       assoc$maf <- pmin(assoc$freq, 1-assoc$freq)
-      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est")]
-      names(assoc) <- c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","beta")
-    } else if (test == "logistic"){
-      assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
-      assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
-      assoc$n <- assoc$n0 + assoc$n1
-      assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est")]
+      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
+      names(assoc) <- c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","beta","stderr","test.stat")
+    } else {
+      if (test == "logistic"){
+        assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
+        assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
+        assoc$n <- assoc$n0 + assoc$n1
+        assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
+      } else {
+        assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
+        assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
+        assoc$n <- assoc$n0 + assoc$n1
+        assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","PPL.Stat")]
+      }
+      
       assoc$Est <- exp(assoc$Est)
-      names(assoc) <- c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or")
+      names(assoc) <- c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat")
     
       # get the variants that pass both maf and pval threshold
       assoc.top_var <- assoc[(assoc$maf < 0.05 & assoc$pvalue < 0.01), "variant.id"]
@@ -261,7 +269,9 @@ if (sum(gds.mac.filt) == 0){
       
       assoc <- merge(assoc, geno.counts, by.x = "variant.id", by.y = "variant.id", all.x = T)
       assoc[is.na(assoc)] <- ""
-      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
+      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
+    } else {
+      
     }
     # close gds
     seqClose(gds.data)
