@@ -107,14 +107,15 @@ If the statistical test is the Wald test:
 
 Below is an example output file using 1000 genomes data and simulated phenotypes. Note that case/control genotype counts is only calculated for variants with minor allele frequency < 5% __and__ pvalue < 0.01. (maf, pvalue, and Score.Stat have been truncated for display only)
 
-| MarkerName          | chr | pos | ref | alt | minor.allele | maf | pvalue | n | Score.Stat | homref.case | homref.control | het.case | het.control | homalt.case | homalt.control |
+| MarkerName | chr | pos | ref | alt | minor.allele | maf | pvalue | n | or | homref.case | homref.control | het.case | het.control | homalt.case | homalt.control | 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| chr22-16052271-G-A | 22 | 16052271 | G | A | alt | 0.0075878 | 0.0598677 | 2504 | 3.541045 |  |  |  |  |  |  |
-| chr22-16052986-C-A | 22 | 16052986 | C | A | alt | 0.0740814 | 0.0013632 | 2504 | 10.25490 |  |  |  |  |  |  |
-| chr22-16911246-C-T | 22 | 16911246 | C | T | alt | 0.0229632 | 0.0049379 | 2504 | 7.902014 | 485 | 1909 | 11 | 94 | 0 | 5 |
-| chr22-17008128-C-T | 22 | 17008128 | C | T | alt | 0.0021964 | 0.5074979 | 2504 | 0.439222 |  |  |  |  |  |  |
-| chr22-17008980-C-T | 22 | 17008980 | C | T | alt | 0.0658945 | 0.7537240 | 2504 | 0.098428 |  |  |  |  |  |  |
-| chr22-17009923-G-C | 22 | 17009923 | G | C | alt | 0.0119808 | 0.0024070 | 2504 | 9.209963 | 475 | 1969 | 21 | 39 | 0 | 0 |
+| 22-16911246-C-2 | 22 | 16911246 | C | 2 | alt | 0.022963259 | 0.005272838 | 2504 | 2.491866447 | 485 | 1909 | 11 | 94 | 0 | 5 | 
+| 22-16913263-G-2 | 22 | 16913263 | G | 2 | alt | 0.053115016 | 0.295505827 | 2504 | 1.202738601 |  |  |  |  |  | | 
+| 22-17008575-C-2 | 22 | 17008575 | C | 2 | alt | 0.063298722 | 0.898198073 | 2504 | 1.020014302 |  |  |  |  |  | | 
+| 22-17008980-C-2 | 22 | 17008980 | C | 2 | alt | 0.065894569 | 0.761055316 | 2504 | 1.047914855 |  |  |  |  |  | | 
+| 22-17009923-G-2 | 22 | 17009923 | G | 2 | alt | 0.011980831 | 0.001961774 | 2504 | 0.414552032 | 475 | 1969 | 21 | 39 | 0 | 0 | 
+| 22-17010327-T-2 | 22 | 17010327 | T | 2 | alt | 0.004193291 | 0.224388837 | 2504 | 2.494139403 |  |  |  |  |  | | 
+| 22-17010636-C-2 | 22 | 17010636 | C | 2 | alt | 0.00399361 | 0.216093467 | 2504 | 0.537471883 |  |  |  |  |  | | 
 
 
 *summary.R* also produces a PNG file with Manhattan and quantile-quantile plots. Three plots are shown in this image (from top-left):
@@ -123,7 +124,7 @@ Below is an example output file using 1000 genomes data and simulated phenotypes
 2. QQ plot of variants divided into *Common variants* with MAF >= 5% and *Low frequency and rare variants* with MAF < 5%. Genomic control is shown at top left of each plot.
 3. Manhattan plot of all variants with nominal (1e-5) and genomewide (5e-8) significance thresholds in blue and red lines respectively.
 
-![Example PNG output](test_inputs/demo_1000_genomes.cov1_association_plots.png)
+![Example PNG output](test_inputs/demo_1000_genomes_association_plots.png)
 
 
 
