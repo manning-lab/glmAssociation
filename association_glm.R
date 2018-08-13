@@ -270,8 +270,6 @@ if (sum(gds.mac.filt) == 0){
       assoc <- merge(assoc, geno.counts, by.x = "variant.id", by.y = "variant.id", all.x = T)
       assoc[is.na(assoc)] <- ""
       assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
-    } else {
-      
     }
     # close gds
     seqClose(gds.data)
