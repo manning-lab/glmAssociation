@@ -51,7 +51,6 @@ task assocTest {
 }
 
 task summary {
-	String test
 	Float? pval_threshold
 	String label
 	Array[File] assoc
@@ -61,7 +60,6 @@ task summary {
 
 	command {
 		echo "Input files" > summary.log
-		echo "test: ${test}" >> summary.log
 		echo "pval_threshold: ${pval_threshold}" >> summary.log
 		echo "label: ${label}" >> summary.log
 		echo "assoc: ${sep = ',' assoc}" >> summary.log
@@ -69,7 +67,7 @@ task summary {
 		echo "disk: ${disk}" >> summary.log
 		echo "" >> summary.log
 		dstat -c -d -m --nocolor 10 1>>summary.log &
-		R --vanilla --args ${test} ${default="0.0001" pval_threshold} ${label} ${sep = ',' assoc} < /glmAssociation/summary.R
+		R --vanilla --args ${default="0.0001" pval_threshold} ${label} ${sep = ',' assoc} < /glmAssociation/summary.R
 	}
 	
 	runtime {
