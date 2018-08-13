@@ -61,7 +61,7 @@ if (length(assoc.files) == 0){
   assoc.compilation$pvalue <- as.numeric(as.character(assoc.compilation[,pval]))
   
   # Write out the top results
-  fwrite(assoc.compilation[assoc.compilation[,pval] < pval.threshold, ], paste(label, ".topassoc.csv", sep=""), sep=",", row.names = F)
+  fwrite(assoc.compilation[assoc.compilation[,pval] < pval.threshold, ], paste(label, ".topassoc.csv", sep=""), sep=",", row.names = F, quote = F)
   
   # generate the QQ plot (from J Wessel)
   qqpval2 = function(x, main="", col="black"){
