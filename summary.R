@@ -16,16 +16,11 @@ lapply(packages, library, character.only = TRUE)
 
 # Parse inputs
 input_args <- commandArgs(trailingOnly=T)
-test <- input_args[1]
-pval.threshold <- as.numeric(input_args[2])
-label <- input_args[3]
-assoc.files <- unlist(strsplit(input_args[4],","))
+pval.threshold <- as.numeric(input_args[1])
+label <- input_args[2]
+assoc.files <- unlist(strsplit(input_args[3],","))
 
-if (test == "firth"){
-  pval <- "PPL.Pval"
-} else {
-  pval <- "Wald.Pval"
-}
+pval <- "pvalue"
 
 # Stop if no assoc files
 if (length(assoc.files) == 0){
@@ -113,27 +108,5 @@ if (length(assoc.files) == 0){
   manhattan(assoc.compilation,chr="chr",bp="pos",p="P", main="All variants")
   
   
-  # # QQ plots by maf
-  # png(filename = paste(label,"_association_plots.png",sep=""),width = 11, height = 11, units = "in", res=400, type = "cairo")
-  # par(mfrow=c(3,3))
-  # 
-  # # All variants
-  # qq(assoc.compilation$P,main="All variants")
-  # 
-  # # Common variants
-  # qq(assoc.compilation$P[assoc.compilation$maf>0.05],main="Variants with MAF>0.05")
-  # 
-  # # Rare/Low frequency variants
-  # qq(assoc.compilation$P[assoc.compilation$maf<=0.05],main="Variants with MAF<=0.05")
-  # 
-  # # Manhattan plots by maf
-  # # All variants
-  # manhattan(assoc.compilation,chr="chr",bp="pos",p="P", main="All variants")
-  # 
-  # # Common variants
-  # manhattan(assoc.compilation[assoc.compilation$maf>0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF>0.05")
-  # 
-  # # Rare/Low frequency variants
-  # manhattan(assoc.compilation[assoc.compilation$maf<=0.05,],chr="chr",bp="pos",p="P", main="Variants with MAF<=0.05")
   dev.off()
 }

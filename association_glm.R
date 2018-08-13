@@ -14,12 +14,6 @@
 # Outputs:
 # assoc : an RData file of associations results (.RData)
 
-# Load packages
-library(data.table)
-library(Biobase)
-library(SeqVarTools)
-library(dplyr)
-
 # Parse input arguments
 input_args <- commandArgs(trailingOnly=T)
 gds.file <- input_args[1] 
@@ -32,6 +26,32 @@ test <- input_args[7]
 sample.file <- input_args[8]
 mac <- as.numeric(input_args[9])
 variant.range <- input_args[10]
+
+# Load packages
+library(data.table)
+library(Biobase)
+library(SeqVarTools)
+library(dplyr)
+library(tidyr)
+
+.variantDF <- function(gds) {
+  data.frame(variant.id=seqGetData(gds, "variant.id"),
+             chromosome=seqGetData(gds, "chromosome"),
+             position=seqGetData(gds, "position"),
+             ref=refChar(gds),
+             alt=altChar(gds),
+             nAlleles=seqNumAllele(gds),
+             stringsAsFactors=FALSE)
+}
+.expandAlleles <- function(gds) {
+  .variantDF(gds) %>%
+    separate_rows_("alt", sep=",") %>%
+    rename_(allele="alt") %>%
+    group_by_("variant.id") %>%
+    mutate_(allele.index=~1:n()) %>%
+    as.data.frame()
+}
+
 
 # get covariates
 if (!(covariate.string == "NA")){
@@ -127,46 +147,125 @@ gds.freq <- seqAlleleFreq(gds.data, .progress=TRUE)
 gds.maf <- pmin(gds.freq, 1-gds.freq)
 gds.mac.filt <- 2 * gds.maf * (1-gds.maf) * length(seqGetData(gds.data,"sample.id")) >= mac
 
-# Filter to snps with mac greater than threshold
-seqSetFilter(gds.data, variant.sel=gds.mac.filt, action="intersect", verbose=TRUE)
-
-# Organize data for output
-id <- seqGetData(gds.data,"variant.id")
-chr <- seqGetData(gds.data,"chromosome")
-pos <- seqGetData(gds.data,"position")
-ref <- as.character(ref(gds.data))
-alt <- as.character(unlist(alt(gds.data)))
-gds.mac.filt[is.na(gds.mac.filt)] <- FALSE
-MAF <- gds.maf[gds.mac.filt]
-snps.pos <- data.frame(id,chr,pos,ref,alt,MAF)
-
-# If variant range is input, subset by var range
-if (!(variant.range == "NA")){
-  variant.range = as.list(unlist(strsplit(variant.range,",")))
-  variant.range.list <- lapply(lapply(variant.range, function(x) unlist(strsplit(x,":"))), function(y) c(y[1],unlist(strsplit(y[2],"-"))))
+if (sum(gds.mac.filt) == 0){
+  print("No SNPs pass MAC filter. Finished Association Step")
+  assoc <- NA
   
-  var.tokeep.id <- c()
-  for (rng in variant.range.list){
-    cur.var <- subset(snps.pos, chr == rng[1] & pos >= as.numeric(rng[2]) & pos <= as.numeric(rng[3]))
-    var.tokeep.id <- c(var.tokeep.id, cur.var$id)
+} else {
+  # Filter to snps with mac greater than threshold
+  seqSetFilter(gds.data, variant.sel=gds.mac.filt, action="intersect", verbose=TRUE)
+
+  # Filter to only passing variants
+  var.ids <- seqGetData(gds.data,"variant.id")
+  filt <- seqGetData(gds.data, "annotation/filter")
+  var.ids <- var.ids[filt == "PASS"]
+
+  if (length(var.ids) == 0){
+    print("No SNPs pass MAC filter. Finished Association Step")
+    assoc <- NA
+
+  } else {
+    seqSetFilter(gds.data, variant.id = var.ids, action="intersect", verbose=TRUE)  
+
+    # Organize data for output
+    snps.pos <- .expandAlleles(gds.data)[,c(1,2,3,4,5)]
+    names(snps.pos) <- c("id","chr","pos","ref","alt")
+    
+    # If variant range is input, subset by var range
+    if (!(variant.range == "NA")){
+      variant.range = as.list(unlist(strsplit(variant.range,",")))
+      variant.range.list <- lapply(lapply(variant.range, function(x) unlist(strsplit(x,":"))), function(y) c(y[1],unlist(strsplit(y[2],"-"))))
+      
+      var.tokeep.id <- c()
+      for (rng in variant.range.list){
+        cur.var <- subset(snps.pos, chr == rng[1] & pos >= as.numeric(rng[2]) & pos <= as.numeric(rng[3]))
+        var.tokeep.id <- c(var.tokeep.id, cur.var$id)
+      }
+      var.tokeep.id <- unique(var.tokeep.id)
+      
+      seqSetFilter(gds.data, variant.id=var.tokeep.id, action="intersect", verbose=TRUE)
+      snps.pos <- snps.pos[snps.pos$id %in% var.tokeep.id,]
+    }
+
+    # run regression
+    reg.out <- regression(reg.in,
+                          outcome = outcome.name, 
+                          covar=covariates, 
+                          model.type=test)
+    
+    # merge results with snp data
+    assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
+
+    # get case/control
+    pheno <- data.frame(sample = as.character(reg.in@sampleData@data$sample.id), outcome = reg.in@sampleData@data[,outcome.name], stringsAsFactors = F)
+    
+    # fix assoc format
+    #MarkerName	chr	pos	ref	alt	minor.allele	maf	pvalue	n	Score.Stat	homref	het	homalt
+    assoc$MarkerName <- paste(assoc$chr, assoc$pos, assoc$ref, assoc$alt, sep = "-")
+    assoc$minor.allele <- "alt"
+    
+    if (test == "logistic"){
+      assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
+      assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
+      assoc$n <- assoc$n0 + assoc$n1
+      assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est")]
+      assoc$Est <- exp(assoc$Est)
+      names(assoc) <- c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or")
+    }
+    
+    # get the variants that pass both maf and pval threshold
+    assoc.top_var <- assoc[(assoc$maf < 0.05 & assoc$pvalue < 0.01), "variant.id"]
+    
+    # set filter
+    seqSetFilter(gds.data, variant.id = assoc.top_var, sample.id = pheno$sample)
+    
+    # get genotypes
+    geno <- altDosage(gds.data)
+    geno.ctrl <- geno[row.names(geno) %in% pheno[pheno$outcome == 0, "sample"],]
+    geno.case <- geno[row.names(geno) %in% pheno[pheno$outcome == 1, "sample"],]
+    rm(geno)
+    
+    # get counts per geno
+    geno.ctrl.counts <- apply(geno.ctrl, 2, function(x) sum(x == 0, na.rm = T))
+    geno.ctrl.counts <- data.frame(variant.id = names(geno.ctrl.counts), homref = as.numeric(as.character(geno.ctrl.counts)), stringsAsFactors = F)
+    geno.ctrl.counts$het <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 1, na.rm = T))))
+    geno.ctrl.counts$homalt <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 2, na.rm = T))))
+    
+    geno.case.counts <- apply(geno.case, 2, function(x) sum(x == 0, na.rm = T))
+    geno.case.counts <- data.frame(variant.id = names(geno.case.counts), homref = as.numeric(as.character(geno.case.counts)), stringsAsFactors = F)
+    geno.case.counts$het <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 1, na.rm = T))))
+    geno.case.counts$homalt <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 2, na.rm = T))))
+    
+    # get to right format
+    geno.counts <- data.frame(
+      variant.id = geno.ctrl.counts$variant.id, 
+      homref = paste0(geno.case.counts$homref, "/", geno.ctrl.counts$homref),
+      het = paste0(geno.case.counts$het, "/", geno.ctrl.counts$het),
+      homalt = paste0(geno.case.counts$homalt, "/", geno.ctrl.counts$homalt),
+      stringsAsFactors = F
+    )
+
+    geno.counts <- data.frame(
+      variant.id = geno.ctrl.counts$variant.id, 
+      homref.case = geno.case.counts$homref,
+      homref.control = geno.ctrl.counts$homref,
+      het.case = geno.case.counts$het,
+      het.control = geno.ctrl.counts$het,
+      homalt.case = geno.case.counts$homalt,
+      homalt.control = geno.ctrl.counts$homalt,
+      stringsAsFactors = F
+    )
+    
+    assoc <- merge(assoc, geno.counts, by.x = "variant.id", by.y = "variant.id", all.x = T)
+    assoc[is.na(assoc)] <- ""
+    assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
+    
+    # close gds
+    seqClose(gds.data)
+
+
+    # save results
+    save(assoc, file=paste(label, ".assoc.RData", sep=""))
+
+    }
   }
-  var.tokeep.id <- unique(var.tokeep.id)
-  
-  seqSetFilter(gds.data, variant.id=var.tokeep.id, action="intersect", verbose=TRUE)
-  snps.pos <- snps.pos[snps.pos$id %in% var.tokeep.id,]
-}
-
-# run regression
-reg.out <- regression(reg.in,
-                      outcome = outcome.name, 
-                      covar=covariates, 
-                      model.type=test)
-# close gds
-seqClose(gds.data)
-
-# merge results with snp data
-assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
-
-# save results
-save(assoc, file=paste(label, ".assoc.RData", sep=""))
-
