@@ -111,6 +111,6 @@ workflow w_assocTest {
 	}
 	
 	call summary {
-		input: test = this_test, pval_threshold = this_pval_threshold, label = this_label, assoc = assocTest.assoc, memory = this_memory, disk = this_disk
+		input: pval_threshold = this_pval_threshold, label = this_label, assoc = assocTest.assoc, memory = this_memory, disk = this_disk
 	}
 }

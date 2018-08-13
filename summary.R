@@ -58,7 +58,7 @@ if (length(assoc.files) == 0){
   # Make sure the columns are in the right format
   assoc.compilation$chr <- as.numeric(as.character(assoc.compilation$chr))
   assoc.compilation$pos <- as.numeric(as.character(assoc.compilation$pos))
-  assoc.compilation$P <- as.numeric(as.character(assoc.compilation[,pval]))
+  assoc.compilation$pvalue <- as.numeric(as.character(assoc.compilation[,pval]))
   
   # Write out the top results
   fwrite(assoc.compilation[assoc.compilation[,pval] < pval.threshold, ], paste(label, ".topassoc.csv", sep=""), sep=",", row.names = F)
@@ -97,15 +97,15 @@ if (length(assoc.files) == 0){
   qqpval2(assoc.compilation[,pval],col=cols[8])
   legend('topleft',c(paste0('ALL ',lam(assoc.compilation[,pval]))),col=c(cols[8]),pch=c(21))
   
-  qqpval2(assoc.compilation[assoc.compilation$MAF>=0.05,pval],col=cols[1])
-  qqpvalOL(assoc.compilation[assoc.compilation$MAF < 0.05,pval],col=cols[2])
-  legend('topleft',c(paste0('MAF >= 5%  ',lam(assoc.compilation[assoc.compilation$MAF>=0.05,pval])),
-                     paste0('MAF < 5%  ',lam(assoc.compilation[assoc.compilation$MAF < 0.05,pval]))
+  qqpval2(assoc.compilation[assoc.compilation$maf>=0.05,pval],col=cols[1])
+  qqpvalOL(assoc.compilation[assoc.compilation$maf < 0.05,pval],col=cols[2])
+  legend('topleft',c(paste0('MAF >= 5%  ',lam(assoc.compilation[assoc.compilation$maf>=0.05,pval])),
+                     paste0('MAF < 5%  ',lam(assoc.compilation[assoc.compilation$maf < 0.05,pval]))
   ),
   col=c(cols[1],cols[2]),pch=c(21,21))
   
   # manhatten
-  manhattan(assoc.compilation,chr="chr",bp="pos",p="P", main="All variants")
+  manhattan(assoc.compilation,chr="chr",bp="pos",p="pvalue", main="All variants")
   
   
   dev.off()
