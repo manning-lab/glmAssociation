@@ -187,97 +187,102 @@ if (sum(gds.mac.filt, na.rm = T) == 0){
       seqSetFilter(gds.data, variant.id=var.tokeep.id, action="intersect", verbose=TRUE)
       snps.pos <- snps.pos[snps.pos$id %in% var.tokeep.id,]
     }
-
-    # run regression
-    reg.out <- regression(reg.in,
-                          outcome = outcome.name, 
-                          covar=covariates, 
-                          model.type=test)
     
-    # merge results with snp data
-    assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
-
-    # get case/control
-    pheno <- data.frame(sample = as.character(reg.in@sampleData@data$sample.id), outcome = reg.in@sampleData@data[,outcome.name], stringsAsFactors = F)
-    
-    # fix assoc format
-    #MarkerName	chr	pos	ref	alt	minor.allele	maf	pvalue	n	Score.Stat	homref	het	homalt
-    assoc$MarkerName <- paste(assoc$chr, assoc$pos, assoc$ref, assoc$alt, sep = "-")
-    assoc$minor.allele <- "alt"
-    
-    if (test == "linear"){
-      assoc$maf <- pmin(assoc$freq, 1-assoc$freq)
-      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
-      names(assoc) <- c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","beta","stderr","test.stat")
+    if (nrow(snps.pos) == 0){
+      print("No SNPs left in variant range. Finished Association Step")
+      assoc <- NA
     } else {
-      if (test == "logistic"){
-        assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
-        assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
-        assoc$n <- assoc$n0 + assoc$n1
-        assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
-      } else {
-        assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
-        assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
-        assoc$n <- assoc$n0 + assoc$n1
-        assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","PPL.Stat")]
-      }
+
+      # run regression
+      reg.out <- regression(reg.in,
+                            outcome = outcome.name, 
+                            covar=covariates, 
+                            model.type=test)
       
-      assoc$Est <- exp(assoc$Est)
-      names(assoc) <- c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat")
-    
-      # get the variants that pass both maf and pval threshold
-      assoc.top_var <- assoc[(assoc$maf < 0.05 & assoc$pvalue < 0.01), "variant.id"]
-      
-      # set filter
-      seqSetFilter(gds.data, variant.id = assoc.top_var, sample.id = pheno$sample)
-      
-      # get genotypes
-      geno <- altDosage(gds.data)
-      geno.ctrl <- geno[row.names(geno) %in% pheno[pheno$outcome == 0, "sample"],]
-      geno.case <- geno[row.names(geno) %in% pheno[pheno$outcome == 1, "sample"],]
-      rm(geno)
-      
-      # get counts per geno
-      geno.ctrl.counts <- apply(geno.ctrl, 2, function(x) sum(x == 0, na.rm = T))
-      geno.ctrl.counts <- data.frame(variant.id = names(geno.ctrl.counts), homref = as.numeric(as.character(geno.ctrl.counts)), stringsAsFactors = F)
-      geno.ctrl.counts$het <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 1, na.rm = T))))
-      geno.ctrl.counts$homalt <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 2, na.rm = T))))
-      
-      geno.case.counts <- apply(geno.case, 2, function(x) sum(x == 0, na.rm = T))
-      geno.case.counts <- data.frame(variant.id = names(geno.case.counts), homref = as.numeric(as.character(geno.case.counts)), stringsAsFactors = F)
-      geno.case.counts$het <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 1, na.rm = T))))
-      geno.case.counts$homalt <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 2, na.rm = T))))
-      
-      # get to right format
-      geno.counts <- data.frame(
-        variant.id = geno.ctrl.counts$variant.id, 
-        homref = paste0(geno.case.counts$homref, "/", geno.ctrl.counts$homref),
-        het = paste0(geno.case.counts$het, "/", geno.ctrl.counts$het),
-        homalt = paste0(geno.case.counts$homalt, "/", geno.ctrl.counts$homalt),
-        stringsAsFactors = F
-      )
+      # merge results with snp data
+      assoc <- merge(reg.out, snps.pos, by.x = "variant.id", by.y = "id")
   
-      geno.counts <- data.frame(
-        variant.id = geno.ctrl.counts$variant.id, 
-        homref.case = geno.case.counts$homref,
-        homref.control = geno.ctrl.counts$homref,
-        het.case = geno.case.counts$het,
-        het.control = geno.ctrl.counts$het,
-        homalt.case = geno.case.counts$homalt,
-        homalt.control = geno.ctrl.counts$homalt,
-        stringsAsFactors = F
-      )
+      # get case/control
+      pheno <- data.frame(sample = as.character(reg.in@sampleData@data$sample.id), outcome = reg.in@sampleData@data[,outcome.name], stringsAsFactors = F)
       
-      assoc <- merge(assoc, geno.counts, by.x = "variant.id", by.y = "variant.id", all.x = T)
-      assoc[is.na(assoc)] <- ""
-      assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
-    }
-    # close gds
-    seqClose(gds.data)
-
-
-    # save results
-    save(assoc, file=paste(label, ".assoc.RData", sep=""))
-
+      # fix assoc format
+      #MarkerName	chr	pos	ref	alt	minor.allele	maf	pvalue	n	Score.Stat	homref	het	homalt
+      assoc$MarkerName <- paste(assoc$chr, assoc$pos, assoc$ref, assoc$alt, sep = "-")
+      assoc$minor.allele <- "alt"
+      
+      if (test == "linear"){
+        assoc$maf <- pmin(assoc$freq, 1-assoc$freq)
+        assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
+        names(assoc) <- c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","beta","stderr","test.stat")
+      } else {
+        if (test == "logistic"){
+          assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
+          assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
+          assoc$n <- assoc$n0 + assoc$n1
+          assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","Wald.Stat")]
+        } else {
+          assoc$maf <- (assoc$n0*assoc$freq0 + assoc$n1*assoc$freq1)/(assoc$n0+assoc$n1)
+          assoc$maf <- pmin(assoc$maf, 1-assoc$maf)
+          assoc$n <- assoc$n0 + assoc$n1
+          assoc <- assoc[,c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf",names(assoc)[endsWith(tolower(names(assoc)),"pval")],"n","Est","SE","PPL.Stat")]
+        }
+        
+        assoc$Est <- exp(assoc$Est)
+        names(assoc) <- c("variant.id","MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat")
+      
+        # get the variants that pass both maf and pval threshold
+        assoc.top_var <- assoc[(assoc$maf < 0.05 & assoc$pvalue < 0.01), "variant.id"]
+        
+        # set filter
+        seqSetFilter(gds.data, variant.id = assoc.top_var, sample.id = pheno$sample)
+        
+        # get genotypes
+        geno <- altDosage(gds.data)
+        geno.ctrl <- geno[row.names(geno) %in% pheno[pheno$outcome == 0, "sample"],]
+        geno.case <- geno[row.names(geno) %in% pheno[pheno$outcome == 1, "sample"],]
+        rm(geno)
+        
+        # get counts per geno
+        geno.ctrl.counts <- apply(geno.ctrl, 2, function(x) sum(x == 0, na.rm = T))
+        geno.ctrl.counts <- data.frame(variant.id = names(geno.ctrl.counts), homref = as.numeric(as.character(geno.ctrl.counts)), stringsAsFactors = F)
+        geno.ctrl.counts$het <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 1, na.rm = T))))
+        geno.ctrl.counts$homalt <- as.numeric(as.character(apply(geno.ctrl, 2, function(x) sum(x == 2, na.rm = T))))
+        
+        geno.case.counts <- apply(geno.case, 2, function(x) sum(x == 0, na.rm = T))
+        geno.case.counts <- data.frame(variant.id = names(geno.case.counts), homref = as.numeric(as.character(geno.case.counts)), stringsAsFactors = F)
+        geno.case.counts$het <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 1, na.rm = T))))
+        geno.case.counts$homalt <- as.numeric(as.character(apply(geno.case, 2, function(x) sum(x == 2, na.rm = T))))
+        
+        # get to right format
+        geno.counts <- data.frame(
+          variant.id = geno.ctrl.counts$variant.id, 
+          homref = paste0(geno.case.counts$homref, "/", geno.ctrl.counts$homref),
+          het = paste0(geno.case.counts$het, "/", geno.ctrl.counts$het),
+          homalt = paste0(geno.case.counts$homalt, "/", geno.ctrl.counts$homalt),
+          stringsAsFactors = F
+        )
+    
+        geno.counts <- data.frame(
+          variant.id = geno.ctrl.counts$variant.id, 
+          homref.case = geno.case.counts$homref,
+          homref.control = geno.ctrl.counts$homref,
+          het.case = geno.case.counts$het,
+          het.control = geno.ctrl.counts$het,
+          homalt.case = geno.case.counts$homalt,
+          homalt.control = geno.ctrl.counts$homalt,
+          stringsAsFactors = F
+        )
+        
+        assoc <- merge(assoc, geno.counts, by.x = "variant.id", by.y = "variant.id", all.x = T)
+        assoc[is.na(assoc)] <- ""
+        assoc <- assoc[,c("MarkerName","chr","pos","ref","alt","minor.allele","maf","pvalue","n","or","stderr","test.stat","homref.case","homref.control","het.case","het.control","homalt.case","homalt.control")]
+      }
     }
   }
+}
+
+  # close gds
+seqClose(gds.data)
+
+# save results
+save(assoc, file=paste(label, ".assoc.RData", sep=""))
