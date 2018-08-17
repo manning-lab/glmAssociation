@@ -146,6 +146,7 @@ if (!(sample.file == "NA")){
 gds.freq <- seqAlleleFreq(gds.data, .progress=TRUE)
 gds.maf <- pmin(gds.freq, 1-gds.freq)
 gds.mac.filt <- 2 * gds.maf * (1-gds.maf) * length(seqGetData(gds.data,"sample.id")) >= mac
+print(table(gds.mac.filt))
 
 if (sum(gds.mac.filt) == 0){
   print("No SNPs pass MAC filter. Finished Association Step")
